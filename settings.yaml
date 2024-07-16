@@ -1,0 +1,21 @@
+model:
+    # service_provider is information only to display which provide the model service
+    service_provider: 'instructlab'
+    # OpenAI-compatible service url, like ollama or instructlab
+    # base_model_url:  'http://127.0.0.1:11434/v1/'
+    base_model_url: 'http://127.0.0.1:8000/v1/'
+    # required but can be ignored
+    api_key: 'instructlab'
+    #model_name:'gpt-3.5-turbo'|'merlinite-7b-lab-Q4_K_M'|'llama3'
+    model_name: 'merlinite-7b-lab-Q4_K_M'
+# https://docs.trychroma.com/guides
+chromadb:
+    persist_directory: 'chroma_storage'
+    collection_name: 'docs_collection'
+    # count of closest matches in query
+    n_results: 10
+front_end:
+    title: "VirtCloud Test AI Assistant"
+    description: "Ask me anything about test plan, test case, test result or known issues!"
+
+    
