@@ -13,15 +13,15 @@ import chromadb
 import logging
 import sys
 
-from misc import param_init
+from misc import param_init, save_data_csv
 
 params = param_init()
 
-BASE_MODEL_URL = params['model'].get('base_model_url')
+MODEL_SERVICE_URL = params['model'].get('model_service_url')
 MODEL_NAME = params['model'].get('model_name')
 API_KEY = params['model'].get('model_name')
 ai_client = OpenAI(
-    base_url = BASE_MODEL_URL,
+    base_url = MODEL_SERVICE_URL,
     api_key=API_KEY,
 )
 
@@ -31,6 +31,17 @@ db_client = chromadb.PersistentClient(path=persist_directory)
 
 # Get the collection.
 collection = db_client.get_collection(name=collection_name)
+
+CHAT_HISTORY_CSV = 'chat_history.csv'
+CHAT_HISTORY_CSV_HEADER = ['Question','Response','Time']
+
+CHAT_VOTED_CSV = 'chat_voted_history.csv'
+CHAT_VOTED_CSV_HEADER = ['Voted','Response','Time']
+
+# we record up/down voted reponse to csv for now, the feedback might help us build more accuracy reponse in future
+def vote_for_response(data: gr.LikeData):
+    data = [{'Voted':data.liked and 'Up' or 'Down', 'Response': data.value["value"], 'Time':time.ctime()}]
+    save_data_csv(csv_file=CHAT_VOTED_CSV, headers=CHAT_VOTED_CSV_HEADER, data=data)
 
 def build_prompt(query: str, context: List[str]) -> List[ChatCompletionMessageParam]:
     """
@@ -94,18 +105,27 @@ def chat_with_local_query(query: str, context: List[str]) -> str:
     )
 
     #print("query:{} sources:{}".format(query,sources))
-    response =  ai_client.chat.completions.create(
-        model=MODEL_NAME,
-        #messages=build_prompt(query, results['documents'][0]),
-        messages=build_prompt(query, results['documents']),
-        stream = True
-    )
+    try:
+        response =  ai_client.chat.completions.create(
+            model=MODEL_NAME,
+            #messages=build_prompt(query, results['documents'][0]),
+            messages=build_prompt(query, results['documents']),
+            stream = True
+            #parallel_tool_calls=False
+        )
+    except Exception as err:
+        tmp_msg = "Error found, try again later! Details:{}".format(err)
+        print(tmp_msg)
+        yield tmp_msg
+        
     tmp_msg = ""
     for chunk in response:
         if chunk.choices[0].delta.content is not None:
-            print(chunk.choices[0].delta.content, end='')
+            #print(chunk.choices[0].delta.content, end='')
             tmp_msg += chunk.choices[0].delta.content
             yield tmp_msg
+    data = [{'Question': query, 'Response': tmp_msg, 'Time':time.ctime()}]
+    save_data_csv(csv_file=CHAT_HISTORY_CSV, headers=CHAT_HISTORY_CSV_HEADER, data=data)
 
 def chat_without_local_data(message, history):
     formatted_history = []
@@ -128,20 +148,25 @@ def chat_without_local_data(message, history):
             tmp_msg += chunk.choices[0].delta.content
             yield tmp_msg
 
+chatbot = gr.Chatbot(placeholder="<strong>Welcome to {}!</strong><br>Ask Me Now".format(params['front_end'].get('title')), likeable=True)
+
 with gr.Blocks() as main_page:
+    chatbot.like(vote_for_response,None,None)
     gr.ChatInterface(chat_with_local_query,
+    chatbot = chatbot,
     title=params['front_end'].get('title'),
     description=params['front_end'].get('description'),
     fill_height=False).queue()
     with gr.Accordion("About this service!", open=False):
         instruct = """
-        **service_provider:** {}  
-        **base_model_url**: {}  
+        **source_repo:** {}  
+        **model_service_provider:** {}  
+        **model_service_url**: {}  
         **model_name**: {}  
-        **Contacts**: yuxisun@redhat.com, yoguo@redhat.com, xiliang@redhat.com
-        """.format(params['model'].get('service_provider'),BASE_MODEL_URL, MODEL_NAME)
+        **contacts**: {}  
+        """.format(params['general'].get('source_repo'),params['model'].get('model_service_provider'),MODEL_SERVICE_URL, MODEL_NAME,
+        params['general'].get('contacts'))
         gr.Markdown(instruct)
-    
 
 if __name__ == "__main__":
     main_page.launch(server_name='0.0.0.0',width=80,height=80,inline=True)
