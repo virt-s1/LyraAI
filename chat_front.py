@@ -40,7 +40,7 @@ CHAT_VOTED_CSV_HEADER = ['Voted','Response','Time']
 
 # we record up/down voted reponse to csv for now, the feedback might help us build more accuracy reponse in future
 def vote_for_response(data: gr.LikeData):
-    data = [{'Voted':data.liked and 'Up' or 'Down', 'Response': data.value["value"], 'Time':time.ctime()}]
+    data = [{'Voted':data.liked and 'Up' or 'Down', 'Response': data.value, 'Time':time.ctime()}]
     save_data_csv(csv_file=CHAT_VOTED_CSV, headers=CHAT_VOTED_CSV_HEADER, data=data)
 
 def build_prompt(query: str, context: List[str]) -> List[ChatCompletionMessageParam]:
