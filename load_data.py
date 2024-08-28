@@ -1,6 +1,7 @@
 # ref: https://github.com/chroma-core/chroma/blob/main/examples/chat_with_your_documents/load_data.py
 import os
 import argparse
+from pathlib import Path
 
 from tqdm import tqdm
 
@@ -22,6 +23,9 @@ def main(
     # If the collection already exists, we just return it. This allows us to add more
     # data to an existing collection.
     collection = client.get_or_create_collection(name=collection_name)
+
+    # Create the documents_directory
+    Path(documents_directory).mkdir(parents=True, exist_ok=True)
 
     # Read all files in the data directory
     documents = []
