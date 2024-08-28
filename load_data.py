@@ -1,6 +1,7 @@
 # ref: https://github.com/chroma-core/chroma/blob/main/examples/chat_with_your_documents/load_data.py
 import os
 import argparse
+from pathlib import Path
 
 from tqdm import tqdm
 
@@ -12,6 +13,8 @@ def main(
     collection_name: str = "docs_collection",
     persist_directory: str = ".",
 ) -> None:
+    # Create the documents_directory
+    Path(documents_directory).mkdir(parents=True, exist_ok=True)
     # Read all files in the data directory
     documents = []
     metadatas = []
