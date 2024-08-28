@@ -16,10 +16,10 @@ model:
 chromadb:
     persist_directory: 'chroma_storage'
     collection_name: 'docs_collection'
+    documents_directory: 'docs'
     # count of closest matches in query
     n_results: 10
 front_end:
     title: "VirtCloud Test AI Assistant"
     description: "Ask me anything about test plan, test case, test result or known issues!"
 
-    
